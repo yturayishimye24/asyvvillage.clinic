@@ -6,7 +6,7 @@ import dotenv from "dotenv"
 
 dotenv.config()
 const userToken= (id,role)=>{
-    return jwt.sign({id,role},process.env.JWT_SECRET)
+    return jwt.sign({id,role},process.env.JWT_SECRET,{expiresIn:"10d"})
 }
 export const loginController = async (req, res) => {
     try{
@@ -19,9 +19,9 @@ export const loginController = async (req, res) => {
       const isMatch= await bcrypt.compare(password,user.password)
       if(isMatch){
         const token= userToken(user._id,user.role)
-        res.json({success:true,message:"Login successfull!!",token,username:user.username})
+        res.json({success:true,message:"Login successfull!!",token,role:user.role,user:{username:user.username,role:user.role}})
       }else{
-        res.json({sucess:false,message:"Incorrect password"})
+        res.json({success:false,message:"Incorrect password"})
       }
     }catch(error){
 
@@ -30,9 +30,6 @@ export const loginController = async (req, res) => {
 export const signupController = async (req, res) => {
   try {
     const { username, email,role, password } = req.body;
-  
-   
-    
     if (!validator.isEmail(email)) {
       return res.json({ success: false, message: "Invalid email" });
     }

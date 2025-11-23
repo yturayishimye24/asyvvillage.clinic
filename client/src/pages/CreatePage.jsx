@@ -21,6 +21,11 @@ import {
   Save,
   TrendingUp,
   Ambulance,
+  Send,
+  Package,
+  Filter,
+  Download,
+  Menu,
 } from "lucide-react";
 import {
   BarChart,
@@ -33,17 +38,18 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  LineChart,
+  Line,
 } from "recharts";
 import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-function CreatePage() {
+function NurseDashboard() {
   const navigate = useNavigate();
-  const [isHosipitalized, setIsHospitalized] = useState([]);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isHospitalized, setIsHospitalized] = useState([]);
   const [editingPatientId, setEditingPatientId] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [patient, setPatient] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -53,44 +59,79 @@ function CreatePage() {
   const [maritalStatus, setMaritalStatus] = useState("");
   const [disease, setDisease] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [showNotifications, setShowNotifications] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [formError, setFormError] = useState("");
-  const [notifications, setNotifications] = useState([
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Medicine request states
+  const [requestType, setRequestType] = useState("Medicine Request");
+  const [itemName, setItemName] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [urgency, setUrgency] = useState("Medium");
+  const [reason, setReason] = useState("");
+  const [patientCount, setPatientCount] = useState(0);
+
+  const [myRequests, setMyRequests] = useState([
     {
       id: 1,
-      type: "medicine_request",
-      nurse: "Sarah Johnson",
-      patient: "John Doe",
-      medicine: "Amoxicillin 500mg",
-      quantity: "30 tablets",
+      type: "Medicine Request",
+      item: "Paracetamol 500mg",
+      quantity: "50 units",
+      urgency: "High",
+      date: "2024-01-15",
+      time: "10:30 AM",
       status: "pending",
-      time: "5 mins ago",
+      reason: "Running low on stock",
+      patientCount: 5,
     },
     {
       id: 2,
-      type: "medicine_request",
-      nurse: "Emily Davis",
-      patient: "Jane Smith",
-      medicine: "Ibuprofen 200mg",
-      quantity: "20 tablets",
-      status: "pending",
-      time: "15 mins ago",
+      type: "Equipment Request",
+      item: "Thermometer",
+      quantity: "3 units",
+      urgency: "Medium",
+      date: "2024-01-14",
+      time: "02:15 PM",
+      status: "approved",
+      reason: "Current ones malfunctioning",
+      patientCount: 0,
+      approvedDate: "2024-01-14",
     },
   ]);
+
   
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
+    if (!token) {
+      toast.error("Please login to access dashboard");
+      navigate("/");
+      return;
+    }
+
+    if (role !== "nurse") {
+      toast.error("Unauthorized access - Nurses only");
+      navigate("/");
+      return;
+    }
+  }, [navigate]);
+
   const handleHospitalize = (id) => {
     setIsHospitalized((prev) => {
       if (prev.includes(id)) {
+        toast.info("Patient discharged from hospital");
         return prev.filter((patientId) => patientId !== id);
       }
+      toast.success("Patient marked as hospitalized");
       return [...prev, id];
     });
   };
-  
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("name");
+    localStorage.removeItem("role");
     toast.success("Logged out successfully!");
     setTimeout(() => {
       navigate("/");
@@ -107,10 +148,10 @@ function CreatePage() {
       setPatients((prev) =>
         prev.filter((patient) => patient._id !== patientId)
       );
-      toast.success("Deleted Successfully!");
+      toast.success("Patient deleted successfully!");
     } catch (error) {
       console.error("Error deleting patient:", error);
-      toast.error("Failed to delete patient, Try later!");
+      toast.error("Failed to delete patient. Try later!");
     } finally {
       setLoading(false);
     }
@@ -125,7 +166,6 @@ function CreatePage() {
     setMaritalStatus(patient.maritalStatus);
     setDisease(patient.disease);
     setShowForm(true);
-    setSaving(false);
   };
 
   const resetForm = () => {
@@ -137,6 +177,15 @@ function CreatePage() {
     setDisease("");
     setEditingPatientId(null);
     setFormError("");
+  };
+
+  const resetRequestForm = () => {
+    setRequestType("Medicine Request");
+    setItemName("");
+    setQuantity("");
+    setUrgency("Medium");
+    setReason("");
+    setPatientCount(0);
   };
 
   const handleSubmit = async (e) => {
@@ -186,9 +235,40 @@ function CreatePage() {
         error.response?.data?.message ||
           "Failed to save patient. Please try again."
       );
+      toast.error("Failed to save patient!");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRequestSubmit = (e) => {
+    e.preventDefault();
+
+    if (!itemName || !quantity || !reason) {
+      toast.error("Please fill all required fields!");
+      return;
+    }
+
+    const newRequest = {
+      id: myRequests.length + 1,
+      type: requestType,
+      item: itemName,
+      quantity: quantity,
+      urgency: urgency,
+      date: new Date().toISOString().split("T")[0],
+      time: new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      status: "pending",
+      reason: reason,
+      patientCount: patientCount,
+    };
+
+    setMyRequests([newRequest, ...myRequests]);
+    toast.success("Request submitted successfully!");
+    setShowRequestForm(false);
+    resetRequestForm();
   };
 
   const fetchPatients = async () => {
@@ -212,24 +292,20 @@ function CreatePage() {
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
-  
-  const Option = () => {
-    if (isVisible == false) {
-      setIsVisible(true);
-    } else {
-      setIsVisible(false);
-    }
-  };
-  
+
   const totalPatients = patients.length;
   const malePatients = patients.filter((p) => p.gender === "Male").length;
   const femalePatients = patients.filter((p) => p.gender === "Female").length;
-  const pendingRequests = notifications.filter(
-    (n) => n.status === "pending"
+  const pendingRequests = myRequests.filter(
+    (r) => r.status === "pending"
   ).length;
+  const approvedRequests = myRequests.filter(
+    (r) => r.status === "approved"
+  ).length;
+  const hospitalizedCount = isHospitalized.length;
 
   const genderData = [
-    { name: "Male", value: malePatients, color: "#1f2937" },
+    { name: "Male", value: malePatients, color: "#000000" },
     { name: "Female", value: femalePatients, color: "#4b5563" },
     {
       name: "Other",
@@ -243,21 +319,29 @@ function CreatePage() {
       icon: Users,
       label: "Total Patients",
       value: totalPatients,
+      change: "+12%",
+      color: "bg-black",
     },
     {
-      icon: Calendar,
-      label: "Female Patients",
-      value: femalePatients,
+      icon: Ambulance,
+      label: "Hospitalized",
+      value: hospitalizedCount,
+      change: "Active",
+      color: "bg-red-600",
     },
     {
       icon: CheckCircle,
       label: "Approved Requests",
-      value: notifications.length - pendingRequests,
+      value: approvedRequests,
+      change: "This week",
+      color: "bg-green-600",
     },
     {
       icon: Clock,
       label: "Pending Requests",
       value: pendingRequests,
+      change: "Awaiting",
+      color: "bg-amber-600",
     },
   ];
 
@@ -274,6 +358,16 @@ function CreatePage() {
     }, [])
     .slice(0, 5);
 
+  const weeklyData = [
+    { day: "Mon", patients: 12 },
+    { day: "Tue", patients: 19 },
+    { day: "Wed", patients: 15 },
+    { day: "Thu", patients: 25 },
+    { day: "Fri", patients: 22 },
+    { day: "Sat", patients: 18 },
+    { day: "Sun", patients: 20 },
+  ];
+
   if (loading && patients.length === 0) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
@@ -283,230 +377,198 @@ function CreatePage() {
   }
 
   return (
-    <div className="font-sans bg-gray-50 min-h-screen flex flex-col">
-      <div className="w-20 bg-white flex flex-col items-center py-6 fixed h-screen z-50 border-r border-gray-200">
-        <div className="w-12 h-12 bg-black rounded-2xl flex items-center justify-center mb-10 cursor-pointer transition-all duration-300">
-          <Activity color="white" size={24} />
-        </div>
-        <div className="flex flex-col gap-4 flex-1">
+    <div className="flex h-screen bg-gray-50 overflow-hidden font-sans">
+      {/* Sidebar */}
+      <aside
+        className={`${
+          sidebarOpen ? "w-64" : "w-20"
+        } bg-white border-r border-gray-200 transition-all duration-300 flex flex-col`}
+      >
+        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+          {sidebarOpen && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center">
+                <Activity className="text-white" size={20} />
+              </div>
+              <div>
+                <h2 className="font-bold text-lg">Clinic</h2>
+                <p className="text-xs text-gray-500">Nurse Panel</p>
+              </div>
+            </div>
+          )}
           <button
-            onClick={() => setActiveTab("dashboard")}
-            className={`w-14 h-14 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-300 ${
-              activeTab === "dashboard"
-                ? "bg-black"
-                : "bg-white hover:bg-gray-50 border border-gray-200"
-            }`}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 hover:bg-gray-100 rounded-lg transition"
           >
-            <Home
-              color={activeTab === "dashboard" ? "white" : "#000"}
-              size={22}
-            />
+            <Menu size={20} />
           </button>
-          <button
-            onClick={() => setActiveTab("patients")}
-            className={`w-14 h-14 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-300 ${
-              activeTab === "patients"
-                ? "bg-black"
-                : "bg-white hover:bg-gray-50 border border-gray-200"
-            }`}
-          >
-            <Users
-              color={activeTab === "patients" ? "white" : "#000"}
-              size={22}
-            />
-          </button>
-          <button
-            onClick={() => setActiveTab("medicines")}
-            className={`w-14 h-14 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-300 ${
-              activeTab === "medicines"
-                ? "bg-black"
-                : "bg-white hover:bg-gray-50 border border-gray-200"
-            }`}
-          >
-            <Pill
-              color={activeTab === "medicines" ? "white" : "#000"}
-              size={22}
-            />
-          </button>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="w-14 h-14 bg-white border border-red-200 rounded-2xl flex items-center justify-center cursor-pointer transition-all hover:bg-red-50"
-        >
-          <LogOut color="#ef4444" size={22} />
-        </button>
-      </div>
-
-      <div className="ml-20 flex-1">
-        <div className="bg-white text-gray-900 border-b border-gray-200 flex items-center justify-center w-full py-5 px-6">
-          <div className="flex items-center gap-3">
-            <Activity size={24} className="text-black" />
-            <p className="text-base font-medium">
-              Welcome to your Nurse Dashboard - Manage patients, track records,
-              and request medicines efficiently
-            </p>
-          </div>
         </div>
 
-        <header className="bg-white border-b border-gray-200 px-8 py-1 flex items-center justify-between sticky top-0 z-40">
-          <div>
-            <h1 className="text-2xl font-arial text-gray-900">
-              CMS
-            </h1>
-            <p className="mt-1 text-sm text-gray-600 flex">
-              Welcome back,{" "}
-              <span className="font-semibold text-black">
-                {localStorage.getItem("name") || "Guest"}
-              </span>
-              <span className="bg-teal-500 ml-2 flex items-center justify-center text-white font-arial rounded-full px-6">{localStorage.getItem("role")}</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
+        <nav className="flex-1 p-4 space-y-2">
+          {[
+            { id: "dashboard", label: "Dashboard", icon: Home },
+            {
+              id: "patients",
+              label: "Patients",
+              icon: Users,
+              badge: totalPatients,
+            },
+            {
+              id: "requests",
+              label: "My Requests",
+              icon: Package,
+              badge: pendingRequests,
+            },
+            { id: "medicines", label: "Medicines", icon: Pill },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
               <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer relative transition-all duration-300 ${
-                  pendingRequests > 0
-                    ? "bg-gray-300 border-2 border-gray-600"
-                    : "bg-white border border-gray-200 hover:bg-gray-50"
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${
+                  activeTab === item.id
+                    ? "bg-black text-white shadow-lg"
+                    : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <Bell
-                  color={pendingRequests > 0 ? "#ef4444" : "#000"}
-                  size={20}
-                />
+                <Icon size={20} />
+                {sidebarOpen && (
+                  <>
+                    <span className="flex-1 text-left font-medium">
+                      {item.label}
+                    </span>
+                    {item.badge > 0 && (
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          activeTab === item.id
+                            ? "bg-white text-black"
+                            : "bg-black text-white"
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition"
+          >
+            <LogOut size={20} />
+            {sidebarOpen && <span className="font-medium">Logout</span>}
+          </button>
+        </div>
+      </aside>
+
+    
+      <main className="flex-1 overflow-y-auto">
+       
+        <header className="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Welcome back,{" "}
+                <span className="font-semibold text-black">
+                  {localStorage.getItem("name") || "Nurse"}
+                </span>
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <button className="relative p-2.5 hover:bg-gray-100 rounded-xl transition">
+                <Bell size={20} />
                 {pendingRequests > 0 && (
-                  <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center font-bold">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
                     {pendingRequests}
                   </span>
                 )}
               </button>
-              {showNotifications && (
-                <div className="absolute top-14 right-0 w-96 max-h-96 bg-white rounded-2xl border border-gray-200 overflow-auto z-50">
-                  <div className="px-5 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Medicine Requests
-                    </h3>
-                    <button
-                      onClick={() => setShowNotifications(false)}
-                      className="bg-white rounded-xl cursor-pointer p-2 hover:bg-gray-100 transition-colors border border-gray-200"
-                    >
-                      <X size={18} color="#000" />
-                    </button>
-                  </div>
-                  {notifications.map((notif) => (
-                    <div
-                      key={notif.id}
-                      className="p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
-                            notif.status === "pending"
-                              ? "bg-amber-50 border-amber-200"
-                              : notif.status === "approved"
-                              ? "bg-green-50 border-green-200"
-                              : "bg-red-50 border-red-200"
-                          }`}
-                        >
-                          {notif.status === "pending" ? (
-                            <Clock color="#f59e0b" size={18} />
-                          ) : notif.status === "approved" ? (
-                            <CheckCircle color="#10b981" size={18} />
-                          ) : (
-                            <XCircle color="#ef4444" size={18} />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-gray-900">
-                            {notif.nurse} requests {notif.medicine}
-                          </p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            Patient: {notif.patient} • Qty: {notif.quantity}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {notif.time}
-                          </p>
-                          {notif.status === "pending" && (
-                            <div className="flex gap-2 mt-3">
-                              <button className="flex-1 px-3 py-2 bg-green-600 text-white border-none rounded-xl text-xs cursor-pointer font-medium hover:bg-green-700 transition-all">
-                                Approve
-                              </button>
-                              <button className="flex-1 px-3 py-2 bg-red-600 text-white border-none rounded-xl text-xs cursor-pointer font-medium hover:bg-red-700 transition-all">
-                                Reject
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+                <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-bold">
+                  {(localStorage.getItem("name") || "N")
+                    .charAt(0)
+                    .toUpperCase()}
                 </div>
-              )}
-            </div>
-            <div
-              className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-white text-lg font-bold cursor-pointer transition-all hover:bg-gray-800"
-              onClick={Option}
-            >
-              {(localStorage.getItem("name") || "G").slice(0,1).toUpperCase()}
-            </div>
-            <div>
-              <button
-                className="bg-black text-sm text-white font-arial px-2 py-1 rounded-md
-         border-2 border-transparent
-         hover:border-gray-400 hover:bg-white hover:text-black
-         transition-all md:text-xl"
-              >
-                Make Report
-              </button>
-            </div>
-            {isVisible && (
-              <div className="w-50 rounded-md top-25 h-20 text-black flex flex-col items-center justify-center absolute bg-gray-300 border border-gray-400">
-                <button className="border-l-2 rounded-md border-l-green-400 w-full">
-                  Logout
-                </button>
-                <p>Profile</p>
+                <div>
+                  <p className="font-semibold text-sm">
+                    {localStorage.getItem("name") || "Nurse"}
+                  </p>
+                  <p className="text-xs text-white bg-teal-500 px-2 py-0.5 rounded-full inline-block font-medium">
+                    {localStorage.getItem("role") || "nurse"}
+                  </p>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         </header>
 
         <div className="p-8">
           {activeTab === "dashboard" && (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="space-y-6">
+            
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {stats.map((stat, index) => {
                   const Icon = stat.icon;
                   return (
                     <div
                       key={index}
-                      className="bg-white flex gap-3 rounded-2xl p-2 border border-gray-200 hover:border-gray-300 transition-all duration-300"
+                      className="bg-white rounded-2xl p-6 border border-gray-200 hover:shadow-xl transition-all duration-300"
                     >
-                      
-                      <div className="w-14 overflow-hidden h-[100%] bg-black flex items-center justify-center mb-4">
-                        <Icon className="text-white" size={28} />
+                      <div className="flex items-start justify-between mb-4">
+                        <div
+                          className={`${stat.color} p-3 rounded-xl shadow-lg`}
+                        >
+                          <Icon className="text-white" size={24} />
+                        </div>
+                        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gray-100 text-gray-700">
+                          <TrendingUp size={12} className="inline mr-1" />
+                          {stat.change}
+                        </span>
                       </div>
-                      <div>
-                      <p className="text-sm font-medium text-gray-600 mb-2">
+                      <h3 className="text-3xl font-bold mb-1">{stat.value}</h3>
+                      <p className="text-sm text-gray-600 font-medium">
                         {stat.label}
                       </p>
-                      <p className="text-3xl font-bold text-gray-900">
-                        {stat.value}
-                      </p>
-                      <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
-                        <TrendingUp size={14} />
-                        <span>Active</span>
-                      </div>
-                      </div>
                     </div>
-
                   );
                 })}
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
-                <div className="bg-white p-6 rounded-2xl border border-gray-200">
-                  <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                    <div className="w-1 h-6 bg-black rounded-full"></div>
+                    Weekly Patient Overview
+                  </h3>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={weeklyData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis dataKey="day" stroke="#6b7280" />
+                      <YAxis stroke="#6b7280" />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="patients"
+                        stroke="#000"
+                        strokeWidth={3}
+                        dot={{ fill: "#000", r: 5 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                     <div className="w-1 h-6 bg-black rounded-full"></div>
                     Gender Distribution
                   </h3>
@@ -532,76 +594,80 @@ function CreatePage() {
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-gray-200">
-                  <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                    <div className="w-1 h-6 bg-black rounded-full"></div>
-                    Top 5 Diseases
-                  </h3>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={diseaseData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="name" stroke="#6b7280" />
-                      <YAxis stroke="#6b7280" />
-                      <Tooltip />
-                      <Bar dataKey="count" fill="#000" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
               </div>
-            </>
+
+              {/* Top Diseases */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                  <div className="w-1 h-6 bg-black rounded-full"></div>
+                  Top 5 Diseases
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={diseaseData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="name" stroke="#6b7280" />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#000" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           )}
 
           {activeTab === "patients" && (
-            <>
-              <div className="bg-white rounded-2xl px-6 py-4 mb-6 flex flex-col md:flex-row gap-4 md:justify-between md:items-center border border-gray-200">
-                <div className="relative flex-1 max-w-2xl">
-                  <Search
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2"
-                    size={20}
-                    color="#9ca3af"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search patients by name or disease..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 text-sm border-2 border-gray-200 rounded-2xl outline-none text-gray-900 placeholder-gray-400 focus:border-gray-900 transition-colors"
-                  />
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                <div className="flex flex-col md:flex-row gap-4 md:items-center md:justify-between mb-6">
+                  <div className="relative flex-1 max-w-md">
+                    <Search
+                      className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      size={20}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search patients by name or disease..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-black transition-colors"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <button className="px-4 py-3 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-2">
+                      <Filter size={18} />
+                      <span className="font-medium">Filter</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        resetForm();
+                        setShowForm(true);
+                      }}
+                      className="px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition flex items-center gap-2 font-medium"
+                    >
+                      <Plus size={18} />
+                      Add Patient
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => {
-                    resetForm();
-                    setShowForm(true);
-                  }}
-                  className="bg-black text-white px-6 py-3 text-sm font-semibold rounded-2xl cursor-pointer flex items-center justify-center gap-2 hover:bg-gray-800 transition-all"
-                >
-                  <Plus size={18} />
-                  Add New Patient
-                </button>
-              </div>
 
-              {filteredPatients.length > 0 ? (
-                <div className="bg-white rounded-2xl overflow-hidden border border-gray-200">
+                {filteredPatients.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
-                        <tr className="bg-gray-50 border-b-2 border-gray-200">
-                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                            First Name
+                        <tr className="border-b-2 border-gray-200">
+                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">
+                            Name
                           </th>
-                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                            Last Name
-                          </th>
-                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">
                             Gender
                           </th>
-                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">
                             Date of Birth
                           </th>
-                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                          <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">
                             Disease
                           </th>
-                          <th className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
+                          <th className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase">
                             Actions
                           </th>
                         </tr>
@@ -612,87 +678,243 @@ function CreatePage() {
                             key={patient._id}
                             className="hover:bg-gray-50 transition-colors"
                           >
-                            <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                              {patient.firstName}
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-bold text-sm">
+                                  {patient.firstName.charAt(0)}
+                                  {patient.lastName.charAt(0)}
+                                </div>
+                                <div>
+                                  <p className="font-semibold">
+                                    {patient.firstName} {patient.lastName}
+                                  </p>
+                                </div>
+                              </div>
                             </td>
-                            <td className="px-6 py-4 text-sm text-gray-700">
-                              {patient.lastName}
-                            </td>
-                            <td className="px-6 py-4 text-sm">
-                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-200">
+                            <td className="px-6 py-4">
+                              <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold">
                                 {patient.gender}
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-sm text-gray-700">
+                            <td className="px-6 py-4 text-gray-600">
                               {new Date(patient.date).toLocaleDateString()}
                             </td>
-                            <td className="px-6 py-4 text-sm">
-                              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-900 text-white">
+                            <td className="px-6 py-4">
+                              <span className="px-3 py-1 bg-black text-white rounded-full text-xs font-semibold">
                                 {patient.disease}
                               </span>
                             </td>
-                            <td className="px-6 py-4 flex gap-2 justify-center">
-                              <button
-                                onClick={() => handleDelete(patient._id)}
-                                disabled={loading}
-                                className="px-4 py-2 bg-white text-red-600 border-2 border-red-300 rounded-xl text-xs cursor-pointer flex items-center gap-2 transition-all hover:bg-red-600 hover:text-white hover:border-red-600 font-semibold"
-                              >
-                                <Trash2 size={14} />
-                                Delete
-                              </button>
-                              <button
-                                onClick={() => handleEdit(patient)}
-                                className="px-4 py-2 bg-black text-white border-none rounded-xl text-xs cursor-pointer flex items-center gap-2 transition-all hover:bg-gray-800 font-semibold"
-                              >
-                                <Edit size={14} />
-                                Update
-                              </button>
-                              <button
-                                className="px-4 py-2 bg-red-200 hover:text-white font-arial text-black border-none rounded-xl text-xs cursor-pointer flex items-center gap-2 transition-all hover:bg-red-800 font-semibold"
-                                onClick={()=>handleHospitalize(patient._id)}
-                              >
-                                <Ambulance size={14} />
-                                {isHosipitalized.includes(patient._id) ? (
-                                  <div className="inline-block px-3 py-1 rounded-full bg-amber-200 text-amber-900 text-sm font-semibold">
-                                    Hospitalized
-                                  </div>
-                                ) : (
-                                  <p>Hosipitalize</p>
-                                )}
-                              </button>
+                            <td className="px-6 py-4">
+                              <div className="flex gap-2 justify-center">
+                                <button
+                                  onClick={() => handleEdit(patient)}
+                                  className="px-4 py-2 bg-black text-white rounded-xl text-xs flex items-center gap-2 hover:bg-gray-800 transition font-semibold"
+                                >
+                                  <Edit size={14} />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(patient._id)}
+                                  disabled={loading}
+                                  className="px-4 py-2 bg-white text-red-600 border-2 border-red-300 rounded-xl text-xs flex items-center gap-2 hover:bg-red-600 hover:text-white hover:border-red-600 transition font-semibold"
+                                >
+                                  <Trash2 size={14} />
+                                  Delete
+                                </button>
+                                <button
+                                  onClick={() => handleHospitalize(patient._id)}
+                                  className={`px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition font-semibold ${
+                                    isHospitalized.includes(patient._id)
+                                      ? "bg-amber-100 text-amber-700 border-2 border-amber-300"
+                                      : "bg-red-100 text-red-700 border-2 border-red-300 hover:bg-red-600 hover:text-white"
+                                  }`}
+                                >
+                                  <Ambulance size={14} />
+                                  {isHospitalized.includes(patient._id)
+                                    ? "Hospitalized"
+                                    : "Hospitalize"}
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                ) : (
+                  <div className="py-16 text-center">
+                    <Users size={64} className="mx-auto mb-4 text-gray-400" />
+                    <p className="text-lg font-semibold text-gray-900 mb-2">
+                      No patients found
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Try adjusting your search or add a new patient
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "requests" && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-lg font-bold">My Requests</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Track your medicine and equipment requests
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowRequestForm(true)}
+                    className="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition flex items-center gap-2 font-semibold"
+                  >
+                    <Send size={18} />
+                    New Request
+                  </button>
                 </div>
-              ) : (
-                <div className="bg-white py-16 px-6 text-center rounded-2xl border-2 border-dashed border-gray-300">
-                  <Users size={64} color="#9ca3af" className="mx-auto mb-4" />
-                  <p className="text-lg font-semibold text-gray-900 mb-2">
-                    No patients found
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Try adjusting your search or add a new patient
-                  </p>
+
+                <div className="space-y-4">
+                  {myRequests.map((request) => (
+                    <div
+                      key={request.id}
+                      className="border-2 border-gray-200 rounded-2xl p-6 hover:border-gray-300 transition-all"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-4">
+                            <h4 className="text-lg font-bold">
+                              {request.item}
+                            </h4>
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                request.urgency === "High"
+                                  ? "bg-red-100 text-red-700 border-2 border-red-200"
+                                  : "bg-amber-100 text-amber-700 border-2 border-amber-200"
+                              }`}
+                            >
+                              {request.urgency} Priority
+                            </span>
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                request.status === "pending"
+                                  ? "bg-gray-100 text-gray-700"
+                                  : request.status === "approved"
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {request.status.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-500 mb-1 text-xs font-medium">
+                                Type
+                              </p>
+                              <p className="font-semibold">{request.type}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 mb-1 text-xs font-medium">
+                                Quantity
+                              </p>
+                              <p className="font-semibold">
+                                {request.quantity}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 mb-1 text-xs font-medium">
+                                Date
+                              </p>
+                              <p className="font-semibold">{request.date}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 mb-1 text-xs font-medium">
+                                Time
+                              </p>
+                              <p className="font-semibold">{request.time}</p>
+                            </div>
+                          </div>
+                          {request.reason && (
+                            <div className="bg-gray-50 p-3 rounded-xl mt-4">
+                              <p className="text-xs font-medium text-gray-500 mb-1">
+                                Reason:
+                              </p>
+                              <p className="text-sm text-gray-700">
+                                {request.reason}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          {request.status === "approved" && (
+                            <div className="text-right">
+                              <div className="flex items-center gap-2 text-green-700 font-semibold mb-1">
+                                <CheckCircle size={20} />
+                                <span>Approved</span>
+                              </div>
+                              {request.approvedDate && (
+                                <p className="text-xs text-gray-500">
+                                  on {request.approvedDate}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {request.status === "rejected" && (
+                            <div className="text-right">
+                              <div className="flex items-center gap-2 text-red-700 font-semibold">
+                                <XCircle size={20} />
+                                <span>Rejected</span>
+                              </div>
+                            </div>
+                          )}
+                          {request.status === "pending" && (
+                            <div className="flex items-center gap-2 text-amber-700 font-semibold">
+                              <Clock size={20} />
+                              <span>Pending</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "medicines" && (
+            <div className="bg-white rounded-2xl p-12 border border-gray-200 text-center shadow-sm">
+              <div className="max-w-md mx-auto">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Pill size={40} className="text-gray-400" />
+                </div>
+                <h3 className="text-2xl font-bold mb-3">Medicine Inventory</h3>
+                <p className="text-gray-600 mb-6">
+                  View and manage available medicines and equipment in the
+                  clinic.
+                </p>
+                <button className="px-6 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition font-semibold">
+                  View Inventory
+                </button>
+              </div>
+            </div>
           )}
         </div>
-      </div>
+      </main>
 
+      {/* Add/Edit Patient Form Modal */}
       {showForm && (
         <div
-          className="fixed inset-0 bg-black/60  backdrop-blur-sm flex items-center justify-center z-50 p-5"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => {
             setShowForm(false);
             resetForm();
           }}
         >
           <div
-            className="bg-white rounded-md max-w-3xl w-full max-h-[90vh] overflow-auto border border-gray-300"
+            className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto border border-gray-300"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
@@ -704,15 +926,15 @@ function CreatePage() {
                   setShowForm(false);
                   resetForm();
                 }}
-                className="bg-white border border-gray-200 cursor-pointer p-2 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors"
+                className="p-2 hover:bg-gray-200 rounded-lg transition"
               >
-                <X size={24} color="#000" />
+                <X size={24} />
               </button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="p-6">
                 {formError && (
-                  <div className="px-4 py-3 bg-red-50 text-red-700 rounded-2xl mb-6 text-sm flex items-center gap-3 border border-red-200">
+                  <div className="px-4 py-3 bg-red-50 text-red-700 rounded-xl mb-6 text-sm flex items-center gap-3 border border-red-200">
                     <XCircle size={20} />
                     <span>{formError}</span>
                   </div>
@@ -727,7 +949,7 @@ function CreatePage() {
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       required
-                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-2xl outline-none transition-all bg-white text-gray-900 focus:border-gray-900"
+                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black"
                       placeholder="Enter first name"
                     />
                   </div>
@@ -740,7 +962,7 @@ function CreatePage() {
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       required
-                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-2xl outline-none transition-all bg-white text-gray-900 focus:border-gray-900"
+                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black"
                       placeholder="Enter last name"
                     />
                   </div>
@@ -752,7 +974,7 @@ function CreatePage() {
                       value={gender}
                       onChange={(e) => setGender(e.target.value)}
                       required
-                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-2xl outline-none transition-all bg-white text-gray-900 focus:border-gray-900 cursor-pointer"
+                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black cursor-pointer"
                     >
                       <option value="">Select Gender</option>
                       <option value="Male">Male</option>
@@ -769,7 +991,7 @@ function CreatePage() {
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
                       required
-                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-2xl outline-none transition-all bg-white text-gray-900 focus:border-gray-900"
+                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black"
                     />
                   </div>
                   <div>
@@ -780,7 +1002,7 @@ function CreatePage() {
                       value={maritalStatus}
                       onChange={(e) => setMaritalStatus(e.target.value)}
                       required
-                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-2xl outline-none transition-all bg-white text-gray-900 focus:border-gray-900 cursor-pointer"
+                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black cursor-pointer"
                     >
                       <option value="">Select Status</option>
                       <option value="Single">Single</option>
@@ -789,19 +1011,20 @@ function CreatePage() {
                       <option value="Widowed">Widowed</option>
                     </select>
                   </div>
-                </div>
-                <div className="mt-5">
-                  <label className="block text-sm text-gray-700 mb-2 font-semibold">
-                    Disease / Condition <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={disease}
-                    onChange={(e) => setDisease(e.target.value)}
-                    required
-                    placeholder="Enter primary diagnosis or condition"
-                    className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-2xl outline-none transition-all bg-white text-gray-900 focus:border-gray-900"
-                  />
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-2 font-semibold">
+                      Disease / Condition{" "}
+                      <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={disease}
+                      onChange={(e) => setDisease(e.target.value)}
+                      required
+                      placeholder="Enter primary diagnosis"
+                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
@@ -812,14 +1035,14 @@ function CreatePage() {
                     resetForm();
                   }}
                   disabled={loading}
-                  className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-2xl cursor-pointer transition-all hover:bg-gray-50 hover:border-gray-400"
+                  className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl transition-all hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2.5 text-sm font-semibold text-white bg-black border-none rounded-2xl cursor-pointer transition-all hover:bg-gray-800 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2.5 text-sm font-semibold text-white bg-black rounded-xl transition-all hover:bg-gray-800 flex items-center gap-2 disabled:opacity-50"
                 >
                   {loading ? (
                     <>
@@ -842,9 +1065,154 @@ function CreatePage() {
           </div>
         </div>
       )}
+
+      {/* Request Form Modal */}
+      {showRequestForm && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setShowRequestForm(false);
+            resetRequestForm();
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <h2 className="text-2xl font-bold text-gray-900">New Request</h2>
+              <button
+                onClick={() => {
+                  setShowRequestForm(false);
+                  resetRequestForm();
+                }}
+                className="p-2 hover:bg-gray-200 rounded-lg transition"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleRequestSubmit}>
+              <div className="p-6 space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-2 font-semibold">
+                      Request Type <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={requestType}
+                      onChange={(e) => setRequestType(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black cursor-pointer"
+                    >
+                      <option value="Medicine Request">Medicine Request</option>
+                      <option value="Equipment Request">
+                        Equipment Request
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-2 font-semibold">
+                      Urgency <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={urgency}
+                      onChange={(e) => setUrgency(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black cursor-pointer"
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2 font-semibold">
+                    Item Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={itemName}
+                    onChange={(e) => setItemName(e.target.value)}
+                    required
+                    placeholder="e.g., Paracetamol 500mg"
+                    className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-2 font-semibold">
+                      Quantity <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      required
+                      placeholder="e.g., 50 units"
+                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-700 mb-2 font-semibold">
+                      Number of Patients (Optional)
+                    </label>
+                    <input
+                      type="number"
+                      value={patientCount}
+                      onChange={(e) =>
+                        setPatientCount(parseInt(e.target.value) || 0)
+                      }
+                      min="0"
+                      placeholder="0"
+                      className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-2 font-semibold">
+                    Reason for Request <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    required
+                    rows="4"
+                    placeholder="Explain why you need this item..."
+                    className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black resize-none"
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRequestForm(false);
+                    resetRequestForm();
+                  }}
+                  className="px-6 py-2.5 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl transition-all hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 text-sm font-semibold text-white bg-black rounded-xl transition-all hover:bg-gray-800 flex items-center gap-2"
+                >
+                  <Send size={16} />
+                  Submit Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <ToastContainer position="bottom-right" theme="light" />
     </div>
   );
 }
 
-export default CreatePage;
+export default NurseDashboard;

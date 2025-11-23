@@ -1,4 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
+import { FiEye, FiEyeOff } from "react-icons/fi";
+
 import {
   Activity,
   Phone,
@@ -23,18 +25,22 @@ import Footer from "../components/Footer.jsx";
 
 const LandingPage = () => {
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [currentState, setCurrentState] = useState("Login");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [role,setRole] = useState("nurse");
+  const [role, setRole] = useState("nurse");
   const teamRef = useRef(null);
   const faqRef = useRef(null);
   const HomeRef = useRef(null);
   const servicesRef = useRef(null);
 
+  const handleShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
   const goToHome = () =>
     HomeRef.current?.scrollIntoView({ behavior: "smooth" });
   const scrollToFaqs = () =>
@@ -73,10 +79,14 @@ const LandingPage = () => {
         if (response.data.success) {
           localStorage.setItem("token", response.data.token);
           localStorage.setItem("name", response.data.username);
-          localStorage.setItem("role",response.data.role);
-
-          toast.success(response.data.message);
-          setTimeout(() => navigate("/home"), 1000);
+          localStorage.setItem("role", response.data.role);
+          if (response.data.role === "nurse") {
+            toast.success(response.data.message);
+            setTimeout(() => navigate("/home"), 1000);
+          } else if (response.data.role === "admin") {
+            toast.success(response.data.message);
+            setTimeout(() => navigate("/home/admin"), 1000);
+          }
         } else {
           toast.error("Error signing up: " + response.data.message);
         }
@@ -96,8 +106,13 @@ const LandingPage = () => {
           localStorage.setItem("name", response.data.username);
           localStorage.setItem("role", response.data.role);
 
-          toast.success("Login successfully!");
-          setTimeout(() => navigate("/home"), 1000);
+          if (response.data.role === "nurse") {
+            toast.success("Login successfully!");
+            setTimeout(() => navigate("/home"), 1000);
+          } else if (response.data.role === "admin") {
+            toast.success("Logged in admin!!");
+            setTimeout(() => navigate("/home/admin"));
+          }
         } else {
           toast.error("Incorrect password or email!");
         }
@@ -196,9 +211,7 @@ const LandingPage = () => {
           <li
             onClick={scrollToFaqs}
             className="cursor-pointer hover:text-black transition"
-          >
-            
-          </li>
+          ></li>
           <li
             onClick={scrollToTeam}
             className="cursor-pointer hover:text-black transition"
@@ -350,11 +363,11 @@ const LandingPage = () => {
         </div>
 
         <div ref={teamRef} className="py-5 px-4 bg-white">
-          <TEAM/>
+          <TEAM />
         </div>
 
         <div ref={faqRef} className="py-16 px-4 bg-gray-50">
-         <FAQ/>
+          <FAQ />
         </div>
       </main>
 
@@ -414,7 +427,7 @@ const LandingPage = () => {
                             className="w-full px-3 py-2 border border-gray-300 rounded-md
                                    focus:outline-none focus:ring-2 focus:ring-green-500
                                  focus:border-green-500 bg-white"
-                                 onChange={(e)=>setRole(e.target.value)}
+                            onChange={(e) => setRole(e.target.value)}
                           >
                             <option value="">Select a role</option>
                             <option value="nurse">Nurse</option>
@@ -449,13 +462,27 @@ const LandingPage = () => {
                           Forgot password?
                         </a>
                       </div>
-                      <input
-                        type="password"
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-2 focus:ring-green-200 transition-all text-sm sm:text-base"
-                      />
+                      <div style={{ position: "relative", width: "100%" }}>
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full p-2.5 sm:p-3 border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-2 focus:ring-green-200 transition-all text-sm sm:text-base"
+                        />
+                        <span
+                          onClick={handleShowPassword}
+                          style={{
+                            position: "absolute",
+                            right: "10px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {showPassword ? <FiEye /> : <FiEyeOff />}
+                        </span>
+                      </div>
                     </div>
 
                     <button
@@ -555,7 +582,7 @@ const LandingPage = () => {
           animation: slideUp 0.3s ease-out;
         }
       `}</style>
-      <Footer/>
+      <Footer />
     </div>
   );
 };

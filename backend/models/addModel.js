@@ -19,6 +19,7 @@ const addSchema = new mongoose.Schema({
   },
   maritalStatus: {
     type: String,
+    enum:["married","unmarried"],
     required: true,
   },
   disease: {
