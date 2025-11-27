@@ -50,8 +50,9 @@ const AdminPage = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("name")
     localStorage.removeItem("role");
+
     toast.success("Logged from admin successfully!")
-    setTimeout(navigate("/"),10000)
+    setTimeout(navigate("/"),1000)
     
   }
   const navigate=useNavigate();

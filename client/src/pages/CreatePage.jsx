@@ -1005,10 +1005,10 @@ function NurseDashboard() {
                       className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-xl outline-none transition-all bg-white text-gray-900 focus:border-black cursor-pointer"
                     >
                       <option value="">Select Status</option>
-                      <option value="Single">Single</option>
-                      <option value="Married">Married</option>
-                      <option value="Divorced">Divorced</option>
-                      <option value="Widowed">Widowed</option>
+                      <option value="single">Single</option>
+                      <option value="married">Married</option>
+                      <option value="divorced">Divorced</option>
+                      <option value="widowed">Widowed</option>
                     </select>
                   </div>
                   <div>
