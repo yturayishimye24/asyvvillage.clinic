@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/authContext.jsx";
-import CreateNurseAccount from "./nurseForm";
 
 export default function AdminPage() {
   const { logout } = useAuth();
@@ -43,8 +42,8 @@ export default function AdminPage() {
   const [requests, setRequests] = useState([]);
   const [nurses, setNurses] = useState([]);
   const [email, setEmails] = useState("");
-  const [role,setRole] = useState("")
-  const [username,setUsername]= useState("");
+  const [role, setRole] = useState("");
+  const [username, setUsername] = useState("");
   const [loadingPatients, setLoadingPatients] = useState(false);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [loadingNurses, setLoadingNurses] = useState(false);
@@ -52,7 +51,10 @@ export default function AdminPage() {
   const [activeItem, setActiveItem] = useState("Home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [alert,setShowAlert] = useState(true);
+  const [alert, setShowAlert] = useState(true);
+  const [reports, setReports] = useState([]);
+  const [reportForm, setReportForm] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -69,6 +71,19 @@ export default function AdminPage() {
       return;
     }
   }, [navigate]);
+
+  useEffect(() => {
+    const delayTimer = setTimeout(() => {
+      setShowAlert(true);
+    }, 5000);
+
+    const disappearTimer = setTimeout(() => {
+      setShowAlert(false);
+    }, 6000);
+
+    clearTimeout(delayTimer);
+    clearTimeout(disappearTimer);
+  }, []);
 
   const fetchRequests = async () => {
     setLoadingRequests(true);
@@ -104,7 +119,6 @@ export default function AdminPage() {
       setEmails(response.data.email);
       setUsername(response.data.username);
       setRole(response.data.role);
-      
     } catch (error) {
       console.error("Error fetching email:", error);
     }
@@ -129,39 +143,10 @@ export default function AdminPage() {
     }
   };
 
-  const fetchNurses = async () => {
-    setLoadingNurses(true);
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(
-        "http://localhost:4000/api/nurseaccount/nurse_account",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      const d = response.data;
-      const arr = Array.isArray(d)
-        ? d
-        : Array.isArray(d.nurses)
-        ? d.nurses
-        : [];
-      setNurses(arr);
-      console.log("Nurses loaded:", arr.length);
-    } catch (error) {
-      console.error("Error fetching nurses:", error);
-      toast.error("Error loading nurses");
-      setNurses([]);
-    } finally {
-      setLoadingNurses(false);
-    }
-  };
-
   useEffect(() => {
     fetchEmail();
     fetchRequests();
     fetchPatients();
-    fetchNurses();
   }, []);
 
   const handleLogout = () => {
@@ -171,12 +156,6 @@ export default function AdminPage() {
       navigate("/");
       toast.success("Successfully logged out!");
     }, 1200);
-  };
-
-  const handleNurseCreated = () => {
-    toast.success("Nurse account created successfully!");
-    setShowForm(false);
-    fetchNurses();
   };
 
   const toggleSidebar = () => {
@@ -196,7 +175,6 @@ export default function AdminPage() {
 
   const pendingRequests = requests.filter((r) => r.Status === "pending").length;
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest(".user-dropdown")) {
@@ -244,10 +222,16 @@ export default function AdminPage() {
       </div>
     </div>
   );
+  const handleApprove = async (requestId,e)=>{
+    if(!window.confirm("Are you sure you want to approve this request?")) return;
+  e.preventDefault();
+  const response = await axios.post(`http://localhost:4000/api/requests/approve/:${requestId}`);
+
+  }
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
       <style jsx>{`
-       @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+        @import url("https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
 
         * {
           font-family: "Poppins", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -375,23 +359,23 @@ export default function AdminPage() {
         }
       `}</style>
 
-    { alert &&(<Alert
-      additionalContent={"Here are some requests that are trending up"}
-      color="success"
-      icon={HiInformationCircle}
-      onDismiss={() => setShowAlert(false)}
-      className="fixed w-full z-50 top-0 left-0"
-      rounded
-    >
-      <span className="font-medium">Info alert!</span> Welcome to admin page. You have got  `${requests.length}` requests.
-    </Alert>)}
-     
+      {alert && (
+        <Alert
+          additionalContent={"Here are some requests that are trending up"}
+          color="success"
+          icon={HiInformationCircle}
+          onDismiss={() => setShowAlert(false)}
+          className="fixed w-full z-50 top-0 left-0"
+          rounded
+        >
+          <span className="font-medium">Info alert!</span> Welcome to admin
+          page. You have got `${requests.length}` requests.
+        </Alert>
+      )}
 
-     
       <header className="border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 shodow-lg">
         <div className="flex items-center justify-around gap-10">
           <div className="flex items-center space-x-3">
-          
             <button
               onClick={toggleSidebar}
               className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 smooth-transition"
@@ -400,7 +384,7 @@ export default function AdminPage() {
             </button>
 
             <div className="w-10 h-10 ">
-                  <img src="/images/asyv.png" className="rounded-full"/>
+              <img src="/images/asyv.png" className="rounded-full" />
             </div>
             <h1 className="header-title text-2xl font-bold text-gray-800 dark:text-white">
               Clinic Admin
@@ -408,7 +392,6 @@ export default function AdminPage() {
           </div>
 
           <div className="flex items-center space-x-4">
-        
             <div className="relative">
               <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 smooth-transition relative">
                 <Bell className="w-6 h-6 text-gray-600 dark:text-gray-300" />
@@ -421,7 +404,9 @@ export default function AdminPage() {
             <div className="relative">
               <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30">
                 <Users className="w-6 h-6 text-emerald-600" />
-                <div className="notification-dot bg-emerald-500">{patients.length}</div>
+                <div className="notification-dot bg-emerald-500">
+                  {patients.length}
+                </div>
               </div>
             </div>
 
@@ -439,9 +424,7 @@ export default function AdminPage() {
                   <div className="text-sm font-medium text-gray-900 dark:text-white">
                     {username}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {email}
-                  </div>
+                  <div className="text-xs text-gray-500">{email}</div>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </button>
@@ -498,7 +481,10 @@ export default function AdminPage() {
               alt="Admin"
               className="w-20 h-20 rounded-full mx-auto object-cover relative"
             />
-            <img src="/images/camera.png" className="absolute w-5 h-5 left-[160px] hover:bg-gray-50 transition-all cursor-pointer bottom-[500px] rounded-full"/>
+            <img
+              src="/images/camera.png"
+              className="absolute w-5 h-5 left-[160px] hover:bg-gray-50 transition-all cursor-pointer bottom-[500px] rounded-full"
+            />
             <h3 className="mt-3 font-semibold text-gray-900 dark:text-white">
               {username}
             </h3>
@@ -507,7 +493,6 @@ export default function AdminPage() {
             </p>
           </div>
 
-         
           <nav className="flex-1 p-4">
             <ul className="space-y-2">
               {[
@@ -559,7 +544,7 @@ export default function AdminPage() {
                       <span
                         className={`ml-auto px-2 py-1 text-xs font-semibold text-white rounded-full ${badgeColor}`}
                       >
-                        {activeItem === key? "":`${badge}`}
+                        {activeItem === key ? "" : `${badge}`}
                       </span>
                     )}
                   </button>
@@ -588,9 +573,10 @@ export default function AdminPage() {
               onClick={() => setShowForm(true)}
             />
             <GoogleWorkspaceIcon
+              onClick={() => setReportForm(true)}
               icon={FolderPlus}
               color="bg-gray-400"
-              label="Add Category"
+              label="Add Report"
             />
             <GoogleWorkspaceIcon
               icon={Percent}
@@ -677,8 +663,7 @@ export default function AdminPage() {
                             <div className="flex items-center">
                               <img
                                 src={
-                                  patient.avatarUrl ||
-                                  "/images/patientt.png"
+                                  patient.avatarUrl || "/images/patientt.png"
                                 }
                                 alt={patient.firstName}
                                 className="w-10 h-10 rounded-full object-cover mr-3"
@@ -694,7 +679,7 @@ export default function AdminPage() {
                             {patient.disease || "-"}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="status-dot status-active"></span>
+                            <span className={`status-dot ${patient.Status==="hospitalized"?("bg-red-500"):("bg-green-500")}`}></span>
                             <span className="text-sm font-medium text-gray-900 dark:text-white">
                               {patient.Status || "Active"}
                             </span>
@@ -829,7 +814,7 @@ export default function AdminPage() {
                               : "bg-yellow-100 text-yellow-800"
                           }`}
                         >
-                          {request.Status || "pending"}
+                          {request.Status==="pending"?(<button onClick={()=>handleApprove(request._id)}>Approve</button>):(request.Status || "pending")}
                         </span>
                       </div>
                       {(request.quantity ||
@@ -901,12 +886,6 @@ export default function AdminPage() {
               >
                 <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </button>
-            </div>
-            <div className="overflow-y-auto max-h-[calc(90vh-80px)] custom-scrollbar">
-              <CreateNurseAccount
-                onClose={() => setShowForm(false)}
-                onSuccess={handleNurseCreated}
-              />
             </div>
           </div>
         </div>

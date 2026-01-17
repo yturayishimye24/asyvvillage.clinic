@@ -12,11 +12,12 @@ module.exports = {
     flowbite.content(),
   ],
   theme: {
-    extend: {},
+    extend: {
+      fonts: {
+        poppins: ["Poppins", "sans-serif"],
+      },
+    },
   },
   darkMode: "class",
-  plugins: [
-    heroui(),
-    flowbite.plugin(),
-  ],
+  plugins: [heroui(), flowbite.plugin()],
 };

@@ -71,7 +71,7 @@ export const createPatient = async (req, res) => {
     const payload = await addedPatient.findById(createdPatient.id).populate("createdBy","username role")
 
     io.to("admins").emit("newPatient",payload);
-
+    
     res.status(201).json({patient: payload});
 
   }  catch (error) {

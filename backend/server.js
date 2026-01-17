@@ -13,7 +13,8 @@ import { Server } from "socket.io";
 import User from "./models/userModel.js";
 import emailRouter from "./routes/getEmail.js";
 import router from "./routes/verifyRoute.js"
-import createNurseAccountRouter from "./routes/createNurseAccountRoute.js";
+import reportRouter from "./routes/reportRoute.js"
+
 dotenv.config();
 
 const port = process.env.PORT || 4000;
@@ -50,7 +51,7 @@ app.use("/api/patients", addRouter);
 app.use("/api/requests", requestRouter);
 app.use("/api/infos",emailRouter)
 app.use("/api/verify",router)
-app.use("/api/nurseaccount",createNurseAccountRouter)
+app.use("api/report",reportRouter)
 
 const server = http.createServer(app);
 export const io = new Server(server, {

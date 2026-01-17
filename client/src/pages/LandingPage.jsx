@@ -21,6 +21,7 @@ import secure from "../../images/secure-private.jpeg";
 
 import FAQ from "../components/Faqs.jsx";
 import TEAM from "../components/teamSection.jsx";
+import landingNurse from "../../images/landingNurse.png"
 import {
   Footer,
   FooterBrand,
@@ -59,9 +60,9 @@ const LandingPage = () => {
     teamRef.current?.scrollIntoView({ behavior: "smooth" });
   const scrollToServices = () =>
     servicesRef.current?.scrollIntoView({ behavior: "smooth" });
-  const scrollToWhyUs = ()=>{
-    whyChooseUsRef.current?.scrollIntoView({behavior:"smooth"})
-  }
+  const scrollToWhyUs = () => {
+    whyChooseUsRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
   const openLoginModal = () => setShowLoginModal(true);
   const closeLoginModal = () => {
     setShowLoginModal(false);
@@ -242,9 +243,10 @@ const LandingPage = () => {
 
       <main className="min-h-screen">
         <div
-          className="text-center py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-white"
+          className="text-center py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-white flex"
           ref={HomeRef}
         >
+          <div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 text-gray-900 leading-tight">
             Manage Patients with <br />
             <span className="text-gray-600">Better Communication</span>
@@ -263,6 +265,10 @@ const LandingPage = () => {
             Get started Now
             <ArrowRight size={20} className="sm:w-[22px] sm:h-[22px]" />
           </button>
+          </div>
+          <div>
+            <img src="/images/landingNurse.png" className="w-50 h-50"/>
+          </div>
         </div>
 
         <div
@@ -279,7 +285,10 @@ const LandingPage = () => {
           </div>
         </div>
 
-        <div className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-white" ref={whyChooseUsRef}>
+        <div
+          className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 bg-white"
+          ref={whyChooseUsRef}
+        >
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-10 sm:mb-16 text-gray-400">
             Why Choose Us
           </h2>
@@ -345,7 +354,7 @@ const LandingPage = () => {
                     That is it
                   </span>
                   <a
-                    onClick={()=>setShowLoginModal(true)}
+                    onClick={() => setShowLoginModal(true)}
                     className="rounded-lg bg-cyan-700 hover:cursor-pointer px-5 py-2.5 text-center text-sm font-medium text-white hover:bg-cyan-800 focus:outline-none focus:ring-4 focus:ring-cyan-300 dark:bg-cyan-600 dark:hover:bg-cyan-700 dark:focus:ring-cyan-800"
                   >
                     Right space
@@ -413,7 +422,7 @@ const LandingPage = () => {
                     Your time
                   </span>
                   <a
-                    onClick={()=>setShowLoginModal(true)}
+                    onClick={() => setShowLoginModal(true)}
                     className="rounded-lg bg-cyan-700 px-5 hover:cursor-pointer py-2.5 text-center text-sm font-medium text-white hover:bg-cyan-800 focus:outline-none focus:ring-4 focus:ring-cyan-300 dark:bg-cyan-600 dark:hover:bg-cyan-700 dark:focus:ring-cyan-800"
                   >
                     Be Part of Us
@@ -481,7 +490,7 @@ const LandingPage = () => {
                     Free tryal
                   </span>
                   <a
-                    onClick={()=>setShowLoginModal(true)}
+                    onClick={() => setShowLoginModal(true)}
                     className="rounded-lg bg-cyan-700 px-5 py-2.5 hover:cursor-pointer text-center text-sm font-medium text-white hover:bg-cyan-800 focus:outline-none focus:ring-4 focus:ring-cyan-300 dark:bg-cyan-600 dark:hover:bg-cyan-700 dark:focus:ring-cyan-800"
                   >
                     Join
@@ -565,9 +574,15 @@ const LandingPage = () => {
 "
         >
           <ul className="flex items-center justify-center gap-5">
-            <li className="cursor-pointer" onClick={scrollToServices}>What's included</li>
-            <li className="cursor-pointer" onClick={scrollToFaqs}>How it works</li>
-            <li className="cursor-pointer" onClick={scrollToWhyUs}>Why us</li>
+            <li className="cursor-pointer" onClick={scrollToServices}>
+              What's included
+            </li>
+            <li className="cursor-pointer" onClick={scrollToFaqs}>
+              How it works
+            </li>
+            <li className="cursor-pointer" onClick={scrollToWhyUs}>
+              Why us
+            </li>
           </ul>
         </div>
 
@@ -576,7 +591,9 @@ const LandingPage = () => {
         </div>
 
         <div ref={faqRef} className="py-16 px-4 bg-gray-50">
-          <h1 className="text-4xl font-bold text-center mb-10 text-gray-400">Frequently Asked Questsions</h1>
+          <h1 className="text-4xl font-bold text-center mb-10 text-gray-400">
+            Frequently Asked Questsions
+          </h1>
           <FAQ />
         </div>
       </main>
@@ -623,11 +640,7 @@ const LandingPage = () => {
                   className="bg-green-600 text-white font-poppins disabled:bg-gray-300 disabled:cursor-not-allowed"
                   disabled={loading}
                 >
-                  {loading ? (
-                  "Signing in..."
-                  ) : (
-                    "Sign in"
-                  )}
+                  {loading ? "Signing in..." : "Sign in"}
                 </Button>
               </form>
             </Card>

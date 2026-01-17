@@ -2,7 +2,7 @@ import request from "../models/requestModel.js";
 
 export const getRequests = async (req, res) => {
   try {
-    const requests = await request.find().sort({createdAt: -1})
+    const requests = await request.find().sort({ createdAt: -1 });
     if (!requests || requests.length === 0) {
       res.status(404).json({ success: false, message: "Requests not Found!" });
     } else {
@@ -16,8 +16,15 @@ export const getRequests = async (req, res) => {
 
 export const createRequests = async (req, res) => {
   try {
-    const { requestType, itemName, patientCount, reason, urgency, Status, quantity } =
-      req.body;
+    const {
+      requestType,
+      itemName,
+      patientCount,
+      reason,
+      urgency,
+      Status,
+      quantity,
+    } = req.body;
     if (
       !requestType ||
       !itemName ||
@@ -89,5 +96,26 @@ export const changeRequests = async (req, res) => {
     }
   } catch (error) {
     console.log("Error updating request", error.message);
+  }
+};
+
+export const approveRequests = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const request = await request.findById(id);
+    if (!request) {
+      res.status(404).json({ message: "Request not found!" });
+    }
+
+    if (request.approved) {
+      throw error("Already approved!");
+    }
+    request.Status = "Approved";
+    await request.save();
+    res.status(200).json({ message: "Request approved!" }, request);
+  } catch (error) {
+    console.log("Error approving request");
+    res.status(500).json({ message: "Error approving request" });
   }
 };

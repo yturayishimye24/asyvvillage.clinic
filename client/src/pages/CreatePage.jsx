@@ -4,6 +4,13 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
 import { ThreeDot } from "react-loading-indicators";
+import kaze from "../../images/kaze.png";
+import patients from "../../images/patients.png";
+import patient from "../../images/patientt.png";
+import request from "../../images/request.jpg";
+import report from "../../images/report.jpg";
+
+import { Card, Dropdown, DropdownItem } from "flowbite-react";
 import {
   Users,
   Calendar,
@@ -75,7 +82,8 @@ export default function NursePage() {
   const [reason, setReason] = useState("");
   const [patientCount, setPatientCount] = useState(0);
 
-  // Dashboard state
+  const [alert, showAlert] = useState(false);
+
   const [myRequests, setMyRequests] = useState([]);
   const [email, setEmail] = useState("");
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -88,7 +96,29 @@ export default function NursePage() {
     approvedRequests: 0,
   });
 
-  // Fetch initial data
+  const fetchPatients = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get("http://localhost:4000/api/patients/", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setPatients(response.data || []);
+      setStatsData((prev) => ({
+        ...prev,
+        totalPatients: response.data?.length || 0,
+        // hospitalized: response.data.filter((p) => p.isHospitalized).length || 0,
+      }));
+    } catch (error) {
+      console.error("Error fetching patients:", error.message);
+      toast.error("Failed to fetch patients. Please check your connection.");
+      setPatients([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
@@ -121,7 +151,9 @@ export default function NursePage() {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
+      if (res.data.success) {
+        setHospitalize(res.data);
+      }
       toast.success(res.data.message);
 
       fetchPatients();
@@ -141,28 +173,6 @@ export default function NursePage() {
       setEmail(response.data.email);
     } catch (error) {
       console.error("Error fetching email:", error);
-    }
-  };
-
-  const fetchPatients = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:4000/api/patients/", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setPatients(response.data || []);
-      setStatsData((prev) => ({
-        ...prev,
-        totalPatients: response.data?.length || 0,
-        // hospitalized: response.data.filter((p) => p.isHospitalized).length || 0,
-      }));
-    } catch (error) {
-      console.error("Error fetching patients:", error.message);
-      toast.error("Failed to fetch patients. Please check your connection.");
-      setPatients([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -297,7 +307,6 @@ export default function NursePage() {
     }
   };
 
-  // Request Operations
   const resetRequestForm = () => {
     setRequestType("Medicine Request");
     setItemName("");
@@ -334,42 +343,14 @@ export default function NursePage() {
       );
 
       if (response.data.success) {
-        fetchRequests();
-        toast.success("Request submitted successfully!");
-        setShowRequestForm(false);
-        resetRequestForm();
+        toast.alert("Request submitted successfully!");
+        toast.success("Request Done");
       }
     } catch (error) {
       console.error("Request submission error:", error);
       toast.error("Failed to submit request. Please try again.");
     }
   };
-
-  // UI Helpers
-  const handleLogout = () => {
-    toast.info("Logging out...");
-    setTimeout(() => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("name");
-      localStorage.removeItem("role");
-      navigate("/");
-      toast.success("Successfully logged out!");
-    }, 1200);
-  };
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const closeSidebar = () => {
-    setSidebarOpen(false);
-  };
-
-  const setActiveItemAndClose = (item) => {
-    setActiveItem(item);
-    if (window.innerWidth < 1024) closeSidebar();
-  };
-
   const filteredPatients = patients.filter((patient) =>
     `${patient.firstName || ""} ${patient.lastName || ""} ${
       patient.disease || ""
@@ -378,15 +359,23 @@ export default function NursePage() {
       .includes(searchTerm.toLowerCase())
   );
 
-  // Stats data
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      showAlert(true);
+    }, 3000);
+
+    return clearTimeout(timer);
+  }, []);
+
   const stats = [
     {
       icon: Users,
-      label: "Total Patients",
+      label: "Added patients",
       value: statsData.totalPatients,
       change: "+12%",
       color: "bg-blue-100",
       iconColor: "text-blue-600",
+      bgImage: "/images/patientAdd.jpg",
     },
     {
       icon: Ambulance,
@@ -395,6 +384,7 @@ export default function NursePage() {
       change: "Active",
       color: "bg-red-100",
       iconColor: "text-red-600",
+      bgImage: "/images/hospitalized.jpg",
     },
     {
       icon: CheckCircle2,
@@ -403,6 +393,7 @@ export default function NursePage() {
       change: "This week",
       color: "bg-green-100",
       iconColor: "text-green-600",
+      bgImage: "/images/request.jpg",
     },
     {
       icon: AlertCircle,
@@ -411,10 +402,10 @@ export default function NursePage() {
       change: "Awaiting",
       color: "bg-amber-100",
       iconColor: "text-amber-600",
+      bgImage: "/images/pending.jpg",
     },
   ];
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest(".user-dropdown")) {
@@ -426,30 +417,35 @@ export default function NursePage() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+  const handleLogout = () => {
+    setTimeout(() => localStorage.removeItem("token"), 2000);
+    setTimeout(() => navigate("/"), 2000);
+  };
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+  };
+
+  const setActiveItemAndClose = (item) => {
+    setActiveItem(item);
+    if (window.innerWidth < 1024) closeSidebar();
+  };
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
-      {/* Info Alert Banner */}
-      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-3 flex items-center justify-between shadow-sm">
-        <div className="flex items-center space-x-2">
-          <HiInformationCircle className="w-5 h-5" />
-          <span className="font-medium">Nurse Dashboard</span>
-          <span>
-            {statsData.pendingRequests > 0
-              ? `You have ${statsData.pendingRequests} pending request(s)`
-              : "All requests are up to date"}
-          </span>
-        </div>
-        <button
-          onClick={(e) =>
-            (e.target.closest(".bg-gradient-to-r").style.display = "none")
-          }
-          className="p-1 hover:bg-white/20 rounded"
+      {alert && (
+        <Alert
+          color="warning"
+          rounded
+          className="flex items-center justify-around"
         >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+          <span className="font-medium">Info alert!</span> Change a few things
+          up and try submitting again.
+          <X onClick={() => showAlert(false)} className="cursor-pointer" />
+        </Alert>
+      )}
 
-      {/* Header */}
       <header className="border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center space-x-3">
@@ -483,10 +479,10 @@ export default function NursePage() {
             <div className="relative user-dropdown">
               <button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="flex items-center p-1 rounded-full w-50 h-50 hover:bg-gray-100 bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                  {localStorage.getItem("name")?.charAt(0) || "N"}
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-black font-bold">
+                  {localStorage.getItem("name")?.slice(0, 2) || "Nu"}
                 </div>
                 <div className="hidden sm:block text-left">
                   <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -496,7 +492,6 @@ export default function NursePage() {
                     {email || "nurse@clinic.com"}
                   </div>
                 </div>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
               </button>
 
               {userDropdownOpen && (
@@ -533,7 +528,6 @@ export default function NursePage() {
       </header>
 
       <div className="flex h-[calc(100vh-140px)]">
-     
         <div
           className={`fixed inset-0 bg-black/50 z-40 lg:hidden transition-opacity ${
             sidebarOpen ? "opacity-100 visible" : "opacity-0 invisible"
@@ -541,7 +535,6 @@ export default function NursePage() {
           onClick={closeSidebar}
         />
 
-      
         <aside
           className={`fixed lg:static top-0 left-0 h-full w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col z-50 transform transition-transform lg:transform-none ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -565,7 +558,11 @@ export default function NursePage() {
           <nav className="flex-1 p-4 overflow-y-auto">
             <div className="space-y-1">
               {[
-                { key: "Dashboard", icon: ActivitySquare, label: "Dashboard" },
+                {
+                  key: "Dashboard",
+                  icon: ActivitySquare,
+                  label: "Dashboard",
+                },
                 {
                   key: "Patients",
                   icon: Users,
@@ -622,11 +619,19 @@ export default function NursePage() {
           </div>
         </aside>
 
-        
         <main className="flex-1 p-6 overflow-y-auto">
-         
+          <div className="grid grid-cols-2 gap-6">
+            <aside>
+              <ul>
+                <li>Home</li>
+                <li>Contact</li>
+                <li>Settings</li>
+                <li>Profile</li>
+              </ul>
+            </aside>
+            <div>
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
+            <h1 className="text-3xl font-poppins text-gray-800 dark:text-white mb-2">
               Welcome,{" "}
               <span className="text-blue-600 dark:text-blue-400">
                 {localStorage.getItem("name") || "Nurse"}
@@ -637,37 +642,188 @@ export default function NursePage() {
               treatment progress.
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {stats.map((stat, index) => (
-              <div key={index} class="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-4 py-3 shadow-sm hover:shadow-md transition">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 flex items-center justify-center rounded-lg bg-gray-100">
-                    {stat.icon} 
+          <div className="flex flex-row gap-[30px]">
+            <div className="flex items-center justify-center gap-60px">
+              <Card className="max-w-sm">
+                <div className="flex justify-end px-4 pt-4">
+                  <Dropdown inline label="">
+                    <DropdownItem>
+                      <a
+                        href="#"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white"
+                      >
+                        Edit
+                      </a>
+                    </DropdownItem>
+                    <DropdownItem>
+                      <a
+                        href="#"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white"
+                      >
+                        Export Data
+                      </a>
+                    </DropdownItem>
+                    <DropdownItem>
+                      <a
+                        href="#"
+                        className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600 dark:hover:text-white"
+                      >
+                        Delete
+                      </a>
+                    </DropdownItem>
+                  </Dropdown>
+                </div>
+                <div className="flex flex-col items-center pb-10">
+                  <img
+                    alt="Bonnie image"
+                    height="96"
+                    src="/images/kaze.png"
+                    width="96"
+                    className="mb-3 rounded-full shadow-lg"
+                  />
+                  <h5 className="mb-1 text-xl font-medium text-gray-900 dark:text-white">
+                    Bonnie Green
+                  </h5>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Visual Designer
+                  </span>
+                  <div className="mt-4 flex space-x-3 lg:mt-6">
+                    <a
+                      href="#"
+                      className="inline-flex items-center rounded-lg bg-cyan-700 px-4 py-2 text-center text-sm font-medium text-white hover:bg-cyan-800 focus:outline-none focus:ring-4 focus:ring-cyan-300 dark:bg-cyan-600 dark:hover:bg-cyan-700 dark:focus:ring-cyan-800"
+                    >
+                      Add friend
+                    </a>
+                    <a
+                      href="#"
+                      className="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-center text-sm font-medium text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:hover:border-gray-700 dark:hover:bg-gray-700 dark:focus:ring-gray-700"
+                    >
+                      Message
+                    </a>
+                  </div>
+                </div>
+              </Card>
+              <div className="w-full max-w-md space-y-3 rounded-2xl bg-white p-4 shadow-sm">
+                {/* Item 1 */}
+                <div className="flex items-center gap-4 rounded-xl bg-white p-4 shadow hover:shadow-md transition">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 text-green-600">
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 4v16m8-8H4"
+                      />
+                    </svg>
                   </div>
 
-                  <div>
-                    <p class="text-sm font-semibold text-gray-800">
-                      {stat.label}
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Add New Product
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Create a new product with info and pricing
                     </p>
-                    <p class="text-xs text-gray-500">{stat.value} {stat.label}</p>
                   </div>
                 </div>
 
-                <button class="p-2 rounded-lg hover:bg-gray-100 transition">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="w-5 h-5 text-gray-400"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path d="M6 10a2 2 0 114 0 2 2 0 01-4 0zm4-6a2 2 0 100 4 2 2 0 000-4zm0 12a2 2 0 100 4 2 2 0 000-4z" />
-                  </svg>
-                </button>
-              </div>
-            ))}
-          </div>
+                {/* Item 2 */}
+                <div className="flex items-center gap-4 rounded-xl bg-white p-4 shadow hover:shadow-md transition">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4 6h16M4 12h8M4 18h16"
+                      />
+                    </svg>
+                  </div>
 
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Add a Category
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Add a new category that contains products
+                    </p>
+                  </div>
+                </div>
+
+                {/* Item 3 */}
+                <div className="flex items-center gap-4 rounded-xl bg-white p-4 shadow hover:shadow-md transition">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 8v8m4-4H8"
+                      />
+                    </svg>
+                  </div>
+
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Create a Discount
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      New discount with lots of options
+                    </p>
+                  </div>
+                </div>
+
+                {/* Item 4 */}
+                <div className="flex items-center gap-4 rounded-xl bg-white p-4 shadow hover:shadow-md transition">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4 16l4-4 4 4 8-8"
+                      />
+                    </svg>
+                  </div>
+
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Track Metrics
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Analytics tool for your products
+                    </p>
+                  </div>
+
+                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-600">
+                    New
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          </div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <button
               onClick={() => setShowRequestForm(true)}
@@ -749,7 +905,6 @@ export default function NursePage() {
             </button>
           </div>
 
-          {/* Patients Table */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-8">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
@@ -808,7 +963,7 @@ export default function NursePage() {
                         </div>
                       </td>
                     </tr>
-                  ) : filteredPatients.length === 0 ? (
+                  ) : patients.length === 0 ? (
                     <tr>
                       <td colSpan="5" className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center">
@@ -827,7 +982,7 @@ export default function NursePage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredPatients.map((patient) => (
+                    patients.map((patient) => (
                       <tr
                         key={patient._id}
                         className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
@@ -985,10 +1140,9 @@ export default function NursePage() {
         </main>
       </div>
 
-      {/* Patient Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+        <div className="backdrop fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl  w-auto max-h-[90vh]">
             <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white">
                 {editingPatientId ? "Edit Patient" : "Add New Patient"}
@@ -1003,136 +1157,137 @@ export default function NursePage() {
                 <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
-            <div className="p-6">
-              <form onSubmit={handleSubmit}>
-                {formError && (
-                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-sm">
-                    {formError}
+            <div className="backgrop">
+              <div className="modal p-6 w-auto ">
+                <form onSubmit={handleSubmit}>
+                  {formError && (
+                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-sm">
+                      {formError}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-3 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        First Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Last Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Gender *
+                      </label>
+                      <select
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Date of Birth *
+                      </label>
+                      <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Marital Status *
+                      </label>
+                      <select
+                        value={maritalStatus}
+                        onChange={(e) => setMaritalStatus(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value="">Select Status</option>
+                        <option value="single">Single</option>
+                        <option value="married">Married</option>
+                        <option value="divorced">Divorced</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Disease/Condition *
+                      </label>
+                      <input
+                        type="text"
+                        value={disease}
+                        onChange={(e) => setDisease(e.target.value)}
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      />
+                    </div>
                   </div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      First Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Last Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Gender *
-                    </label>
-                    <select
-                      value={gender}
-                      onChange={(e) => setGender(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForm(false);
+                        resetForm();
+                      }}
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
-                      <option value="">Select Gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Date of Birth *
-                    </label>
-                    <input
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Marital Status *
-                    </label>
-                    <select
-                      value={maritalStatus}
-                      onChange={(e) => setMaritalStatus(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
                     >
-                      <option value="">Select Status</option>
-                      <option value="single">Single</option>
-                      <option value="married">Married</option>
-                      <option value="divorced">Divorced</option>
-                    </select>
+                      {loading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          {editingPatientId ? "Updating..." : "Adding..."}
+                        </>
+                      ) : editingPatientId ? (
+                        <>
+                          <Save className="w-4 h-4" />
+                          Update Patient
+                        </>
+                      ) : (
+                        <>
+                          <PlusCircle className="w-4 h-4" />
+                          Add Patient
+                        </>
+                      )}
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Disease/Condition *
-                    </label>
-                    <input
-                      type="text"
-                      value={disease}
-                      onChange={(e) => setDisease(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowForm(false);
-                      resetForm();
-                    }}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        {editingPatientId ? "Updating..." : "Adding..."}
-                      </>
-                    ) : editingPatientId ? (
-                      <>
-                        <Save className="w-4 h-4" />
-                        Update Patient
-                      </>
-                    ) : (
-                      <>
-                        <PlusCircle className="w-4 h-4" />
-                        Add Patient
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Request Form Modal */}
       {showRequestForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-auto">

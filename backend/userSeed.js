@@ -2,7 +2,7 @@ import User from "../backend/models/userModel.js";
 import bcrypt from "bcrypt";
 
 export const seed = async () => {
-  const existingAdmin = await User.findOne({ email: "admin@gmail.com" });
+  const existingAdmin = await User.findOne({ email:"admin@gmail.com" });
   if (existingAdmin) {
     const hashedPassword = await bcrypt.hash("admin", 10);
 
@@ -15,3 +15,4 @@ export const seed = async () => {
     await createdUser.save();
   }
 };
+

@@ -10,6 +10,6 @@ addRouter.get("/:id",autheticate,requireRole("nurse"),getOnePatient);
 addRouter.post("/create",autheticate,requireRole("nurse"),createPatient);
 addRouter.put("/:id",autheticate,requireRole("nurse"),updatePatient);
 addRouter.delete("/:id",autheticate,requireRole("nurse"),deletePatient);
-addRouter.patch("/:id/hosipitalize",autheticate,requireRole("nurse"),hPatient);
+addRouter.patch("/:id/hospitalize",autheticate,requireRole("nurse"),hPatient);
 export default addRouter
 

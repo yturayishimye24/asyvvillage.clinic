@@ -7,32 +7,32 @@ const userContext = createContext();
 export const AuthContext = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading,setLoading] = useState(false);
-   useEffect(()=>{
-    const verfifyUser = async()=>{
-      const token = localStorage.getItem('token')
+  //  useEffect(()=>{
+  //   const verfifyUser = async()=>{
+  //     const token = localStorage.getItem('token')
       
-      try{
-       if(token){
-       const response = await axios.get("http://localhost:4000/api/verify",{
-         headers:{
-        "Authorization": `Bearer ${token}`
-         }
-       })
-       if(response.data.success){
-        setLoading(true);
-        setUser(response.data.user)
-       }
-      }else{
-        setUser(null)
-      }
-      }catch(error){
-        if(error.response && !error.response.data.error){
-          setUser(null)
-        }
-      }
-    }
-    verfifyUser();
-   },[])
+  //     try{
+  //      if(token){
+  //      const response = await axios.get("http://localhost:4000/api/verify",{
+  //        headers:{
+  //       "Authorization": `Bearer ${token}`
+  //        }
+  //      })
+  //      if(response.data.success){
+  //       setLoading(true);
+  //       setUser(response.data.user)
+  //      }
+  //     }else{
+  //       setUser(null)
+  //     }
+  //     }catch(error){
+  //       if(error.response && !error.response.data.error){
+  //         setUser(null)
+  //       }
+  //     }
+  //   }
+  //   verfifyUser();
+  //  },[])
 
   const login = (user) => {
     setUser(user);

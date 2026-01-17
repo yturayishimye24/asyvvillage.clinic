@@ -34,6 +34,7 @@ export const loginController = async (req, res) => {
     }
   } catch (error) {}
 };
+
 export const signupController = async (req, res) => {
   try {
     const { username, email, role, password } = req.body;
@@ -64,7 +65,7 @@ export const signupController = async (req, res) => {
     });
     const user = await newUser.save();
     const token = userToken(user._id, user.role);
-
+    
     res.json({
       success: true,
       message: "Account created Successfully!",
