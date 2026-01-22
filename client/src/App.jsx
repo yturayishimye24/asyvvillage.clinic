@@ -1,6 +1,6 @@
 import * as React from "react";
 import LoginPage from "./pages/LoginPage.jsx";
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer} from "react-toastify";
 import { Routes, Route, BrowserRouter } from "react-router-dom";
 import CreatePage from "./pages/CreatePage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
@@ -10,13 +10,13 @@ import "./index.css";
 import "flowbite";
 import PrivateRoutes from "./utils/PrivateRoutes.jsx";
 import RoleBasedRoutes from "./utils/RoleBasedRoutes.jsx";
-import { HeroUIProvider } from "@heroui/react";
+
 
 export const backendUrl = "http://localhost:4000";
 const App = () => {
   return (
     
-      <HeroUIProvider theme="cupcake">
+
         <AuthContext>
           <BrowserRouter>
             <Routes>
@@ -37,7 +37,7 @@ const App = () => {
             <ToastContainer containerStyle={{ zIndex: 99999 }} />
           </BrowserRouter>
         </AuthContext>
-      </HeroUIProvider>
+
   
   );
 };

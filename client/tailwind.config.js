@@ -1,14 +1,10 @@
-const { heroui } = require("@heroui/react");
-const flowbite = require("flowbite-react/tailwind");
 
+import flowbite from "flowbite-react/tailwind";
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
-    // HeroUI
-    "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
-    // Flowbite
     flowbite.content(),
   ],
   theme: {
@@ -19,5 +15,5 @@ module.exports = {
     },
   },
   darkMode: "class",
-  plugins: [heroui(), flowbite.plugin()],
+  plugins: [flowbite.plugin()],
 };

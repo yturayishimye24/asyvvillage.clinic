@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Mything from "../components/forHeader.jsx"
 
 import { Alert } from "flowbite-react";
 import { HiInformationCircle } from "react-icons/hi";
@@ -22,9 +23,6 @@ import {
   Percent,
   BarChart3,
   RefreshCw,
-  ChevronDown,
-  Settings,
-  HelpCircle,
   Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -171,9 +169,7 @@ export default function AdminPage() {
     }, 1200);
   };
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+
 
   const closeSidebar = () => {
     setSidebarOpen(false);
@@ -305,94 +301,12 @@ export default function AdminPage() {
       )}
 
       <header className="border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40 shodow-lg">
-        <div className="flex items-center justify-around gap-10">
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={toggleSidebar}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 smooth-transition"
-            >
-              <Menu className="w-6 h-6 text-gray-600 dark:text-gray-300" />
-            </button>
-
-            <div className="w-10 h-10 ">
-              <img src="/images/asyv.png" className="rounded-full" />
+            <div>
+              <h1>Logo</h1>
             </div>
-            <h1 className="header-title text-2xl font-bold text-gray-800 dark:text-white">
-              Clinic Admin
-            </h1>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 smooth-transition relative">
-                <Bell className="w-6 h-6 text-gray-600 dark:text-gray-300" />
-                {pendingRequests > 0 && (
-                  <div className="notification-dot">{pendingRequests}</div>
-                )}
-              </button>
+            <div>
+                <Mything/>
             </div>
-
-            <div className="relative">
-              <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30">
-                <Users className="w-6 h-6 text-emerald-600" />
-                <div className="notification-dot bg-emerald-500">
-                  {patients.length}
-                </div>
-              </div>
-            </div>
-
-            <div className="relative user-dropdown">
-              <button
-                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 smooth-transition"
-              >
-                <img
-                  src="/images/userIcon.png"
-                  alt="Admin"
-                  className="w-10 h-10 rounded-full object-cover"
-                />
-                <div className="hidden sm:block text-left">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
-                    {username}
-                  </div>
-                  <div className="text-xs text-gray-500">{email}</div>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </button>
-
-              {userDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
-                  <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                    <div className="font-medium text-gray-900 dark:text-white">
-                      {username}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {email || "admin@clinic.com"}
-                    </div>
-                  </div>
-                  <div className="py-2">
-                    <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                      <Settings className="w-4 h-4 mr-3" />
-                      Settings
-                    </button>
-                    <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                      <HelpCircle className="w-4 h-4 mr-3" />
-                      Help
-                    </button>
-                    <hr className="my-2" />
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    >
-                      <LogOut className="w-4 h-4 mr-3" />
-                      Sign out
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       </header>
 
       <div className="flex h-[calc(100vh-140px)] mt-20">
@@ -861,7 +775,7 @@ export default function AdminPage() {
                 type="password"
                 value={password}
                 onChange={(e)=>setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder=""
                 className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -884,7 +798,6 @@ export default function AdminPage() {
             <button
               type="submit"
               disabled={adding}
-              onClick={()=>alert("working")}
               className="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition"
             >
               {adding===true? ("Creating nurse"):("Add nurse")}

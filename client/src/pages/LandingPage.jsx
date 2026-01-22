@@ -605,7 +605,10 @@ const LandingPage = () => {
                     placeholder={"Enter your password"}
                     required
                   />
-                  {showPassword ?(<FiEye onClick={handleShowPassword}/>):(<FiEyeOff onClick={handleShowPassword}/>)}
+                  <div className="flex items-center justify-center mt-5 gap-3">
+                    {showPassword ?(<FiEye onClick={handleShowPassword}/>):(<FiEyeOff onClick={handleShowPassword}/>)}
+                    <span>{showPassword?(<p>Show password</p>):(<p>Hide password</p>)}</span>
+                  </div>
 
                 </div>
                 <div className="flex items-center gap-2">

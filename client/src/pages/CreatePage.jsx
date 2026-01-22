@@ -6,16 +6,13 @@ import { useNavigate } from "react-router-dom";
 
 
 
-import { Card, Dropdown, DropdownItem,Sidebar, SidebarItem, SidebarItemGroup, SidebarItems, SidebarLogo } from "flowbite-react";
-import { HiArrowSmRight, HiChartPie, HiInbox, HiShoppingBag, HiTable, HiUser, HiViewBoards } from "react-icons/hi";
+import { Card, Dropdown, DropdownItem } from "flowbite-react";
 import {
   Users,
   PlusCircle,
-  CalendarDays,
   BarChart3,
   Settings,
   X,
-  Pill,
   Ambulance,
   Trash2,
   Edit,
@@ -63,7 +60,6 @@ export default function NursePage() {
 
   const [myRequests, setMyRequests] = useState([]);
   const [email, setEmail] = useState("");
-  const [activeItem, setActiveItem] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
@@ -336,10 +332,7 @@ useEffect(()=>{
     setSidebarOpen(false);
   };
 
-  const setActiveItemAndClose = (item) => {
-    setActiveItem(item);
-    if (window.innerWidth < 1024) closeSidebar();
-  };
+
   return (
     <div className="bg-gray-50 dark:bg-gray-900 min-h-screen">
       {alert && (
